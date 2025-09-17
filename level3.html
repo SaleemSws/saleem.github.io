@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ด่าน 3/3 — ล็อก 5 หลัก (ธีมนักสืบ)</title>
+  <style>
+    :root{
+      --ok:#16a34a; --bad:#dc2626; --neutral:#cbd5e1;
+      --fg:#0f172a; --bg:#f8fafc; --card:#ffffff; --brand:#1d4ed8;
+    }
+    html,body{height:100%}
+    body{
+      margin:0;background:var(--bg);color:var(--fg);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans Thai",sans-serif;
+      display:grid;place-items:center;padding:16px;overflow-x:hidden;
+    }
+    .wrap{
+      background:var(--card); width:min(860px,94vw);
+      border-radius:22px; box-shadow:0 14px 34px rgb(2 6 23 / .10);
+      padding:26px 22px; position:relative;
+    }
+    h1{margin:0 0 6px 0; font-size:clamp(20px,3.8vw,30px)}
+    .lead{margin:4px 0 14px 0; color:#334155}
+    .stepper{display:flex; gap:8px; margin:8px 0 14px 0;}
+    .dot{width:12px; height:12px; border-radius:999px; background:#e2e8f0; opacity:.9;}
+    .dot.on{background:var(--brand)}
+    .grid{display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin:12px 0 4px}
+    .digit{
+      text-align:center; font-size:clamp(22px,6vw,40px);
+      padding:16px 0; border:2.5px solid var(--neutral); border-radius:16px;
+      outline:none; background:#fff; transition:border-color .15s, box-shadow .15s;
+      width:100%;
+    }
+    .digit:focus{box-shadow:0 0 0 4px rgb(59 130 246 / .15)}
+    .digit.ok{border-color:var(--ok)}
+    .digit.bad{border-color:var(--bad)}
+    .labels{display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin:0 0 8px}
+    .label{text-align:center; font-size:12px; color:#475569}
+    .msg{min-height:24px; margin-top:6px; font-size:clamp(14px,2.8vw,16px)}
+    .msg.ok{color:var(--ok)} .msg.bad{color:var(--bad)}
+    .row{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+    button,a.btn{
+      border:0; border-radius:12px; padding:12px 16px; font-size:16px;
+      cursor:pointer; transition:filter .15s; text-decoration:none; display:inline-flex; align-items:center;
+    }
+    .primary{background:var(--brand); color:#fff}
+    .ghost{background:#e2e8f0; color:#0f172a}
+    button:disabled{filter:grayscale(.6); opacity:.7; cursor:not-allowed}
+    .hint{color:#475569; font-size:14px; margin-top:8px}
+    .footer{margin-top:16px; color:#64748b; font-size:12px}
+    .hidden{display:none}
+
+    /* Victory overlay (only used on stage 3) */
+    .overlay{
+      position:fixed; inset:0; display:none; place-items:center;
+      background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(248,250,252,.98));
+      z-index:50;
+    }
+    .overlay.on{display:grid}
+    .card{background:#fff; border-radius:26px; box-shadow:0 16px 38px rgb(2 6 23 / .15);
+      padding:28px 24px; width:min(760px,92vw); text-align:center;}
+    .title{font-size:clamp(24px,4.5vw,36px); margin:0 0 6px}
+    .subtitle{color:#334155; margin:0 0 18px}
+    .confetti{position:fixed; inset:0; pointer-events:none; z-index:40}
+  </style>
+</head>
+<body>
+  <canvas id="confetti" class="confetti"></canvas>
+  <main class="wrap" role="main" aria-labelledby="title">
+    <div class="stepper" aria-label="ความคืบหน้า 3 ด่าน">
+      <div class="dot on"></div>
+      <div class="dot on"></div>
+      <div class="dot on"></div>
+    </div>
+
+    <h1 id="title">ใส่รหัส 5 หลัก — ด่าน <span id="stageText">3</span>/3</h1>
+    <p class="lead" id="lead">
+      แต่ละหลักมาจาก <strong>ผลรวมคำตอบของแต่ละกลุ่มนักสืบ</strong> —
+      <strong>หลักคี่</strong>: <span id="ruleOddTxt">นับ &quot;ของปลอม&quot;</span> •
+      <strong>หลักคู่</strong>: <span id="ruleEvenTxt">นับ &quot;ของจริง&quot;</span>
+      (ปรับได้ในลิงก์ด้วยพารามิเตอร์ <code>?odd=...&amp;even=...</code>)
+    </p>
+
+    <div class="grid" id="grid" aria-label="กล่องรหัส 5 หลัก">
+      <input class="digit" aria-label="หลักที่ 1" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="one-time-code">
+      <input class="digit" aria-label="หลักที่ 2" inputmode="numeric" pattern="[0-9]*" maxlength="1">
+      <input class="digit" aria-label="หลักที่ 3" inputmode="numeric" pattern="[0-9]*" maxlength="1">
+      <input class="digit" aria-label="หลักที่ 4" inputmode="numeric" pattern="[0-9]*" maxlength="1">
+      <input class="digit" aria-label="หลักที่ 5" inputmode="numeric" pattern="[0-9]*" maxlength="1">
+    </div>
+
+    <div class="labels">
+      <div class="label" id="g1">กลุ่มนักสืบออนไลน์</div>
+      <div class="label" id="g2">แยกข่าวจริง/ข่าวปลอม</div>
+      <div class="label" id="g3">จำแนกรูป AI/รูปจริง</div>
+      <div class="label" id="g4">จับสแปมข้อความ</div>
+      <div class="label" id="g5">ต่อต้านสแกม/ฟิชชิง</div>
+    </div>
+
+    <div id="msg" class="msg" aria-live="polite"></div>
+
+    <div class="row">
+      <button id="btnCheck" class="primary">ตรวจรหัส</button>
+      <button id="btnReset" class="ghost">ล้างช่อง</button>
+      <a id="nextLink" class="ghost hidden btn" href="#">ไปด่านถัดไป ➜</a>
+    </div>
+
+    <div class="hint">
+      เคล็ดลับ: วาง (Paste) 5 หลักได้ • Backspace ย้อนช่อง • กำหนดรหัสผ่านผ่านพารามิเตอร์ <code>?code=12345</code> หรือทีละหลัก <code>?d1=1&amp;d2=2...</code> • ตั้งชื่อกลุ่ม <code>?g1=...</code> ถึง <code>?g5=...</code>
+    </div>
+    <div class="footer">ธีมนักสืบ • ปลอดภัย: ตรวจในเครื่อง (ไม่ส่งข้อมูลออก)</div>
+  </main>
+
+  
+  <section id="overlay" class="overlay" aria-hidden="true">
+    <div class="card">
+      <h2 class="title">🎉 ชนะ! เคลียร์ครบทั้ง 3 ด่าน</h2>
+      <p class="subtitle">ยอดเยี่ยมมาก ทีมของคุณปลดล็อกทุกหลักได้ถูกต้อง</p>
+      <div class="row" style="justify-content:center">
+        <button class="ghost" onclick="location.reload()">เล่นด่านนี้ใหม่</button>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // ===== CONFIG (ค่าเริ่มต้น เปลี่ยนผ่าน URL ได้) =====================
+    const STAGE = 3;
+    let SECRET_CODE = "48126";   // set via ?code=xxxxx หรือ ?d1..d5
+    const NEXT_URL = null;          // ถ้า null = ไม่ redirect อัตโนมัติ
+    const AUTO_REDIRECT_MS = 1200;        // 0 เพื่อปิดออโต้
+    const DEFAULT_GROUPS = [
+      "กลุ่มนักสืบออนไลน์",
+      "แยกข่าวจริง/ข่าวปลอม",
+      "จำแนกรูป AI/รูปจริง",
+      "จับสแปมข้อความ",
+      "ต่อต้านสแกม/ฟิชชิง"
+    ];
+    // ข้อความกติกา (ปรับได้ผ่าน ?odd=... & ?even=...)
+    let RULE_ODD_TEXT  = "นับ \\\"ของปลอม\\\"";
+    let RULE_EVEN_TEXT = "นับ \\\"ของจริง\\\"";
+    // ======================================================================
+
+    // อ่านค่าจาก URL
+    try {
+      const q = new URLSearchParams(location.search);
+      // code
+      const code = q.get("code");
+      const d1=q.get("d1"), d2=q.get("d2"), d3=q.get("d3"), d4=q.get("d4"), d5=q.get("d5");
+      const next = q.get("next");
+      const odd  = q.get("odd");
+      const even = q.get("even");
+
+      if (odd)  document.getElementById("ruleOddTxt").textContent  = odd;
+      if (even) document.getElementById("ruleEvenTxt").textContent = even;
+
+      if (code && /^\\d{5}$/.test(code)) SECRET_CODE = code;
+      else if ([d1,d2,d3,d4,d5].every(x => /^\\d$/.test(x||""))) SECRET_CODE = `${d1}{d2}{d3}{d4}{d5}`;
+
+      if (next) window.NEXT_URL_OVERRIDE = next;
+
+      // groups
+      for (let i=1;i<=5;i++) {
+        const g = q.get("g"+i);
+        if (g) document.getElementById("g"+i).textContent = g;
+      }
+    } catch(e) {}
+
+    // DOM
+    const inputs = Array.from(document.querySelectorAll(".digit"));
+    const msgEl = document.getElementById("msg");
+    const btnCheck = document.getElementById("btnCheck");
+    const btnReset = document.getElementById("btnReset");
+    const nextLink = document.getElementById("nextLink");
+
+    function digits() { return inputs.map(i => (i.value || "").trim()); }
+    function allFilled() { return digits().every(d => d !== ""); }
+    function validatePerDigit(){
+      const val = digits();
+      return val.map((d,i) => d === SECRET_CODE[i]);
+    }
+
+    function applyStyles(){
+      const res = validatePerDigit();
+      inputs.forEach((inp,i)=>{
+        inp.classList.remove("ok","bad");
+        if (inp.value === "") return;
+        inp.classList.add(res[i] ? "ok" : "bad");
+      });
+
+      if (!allFilled()){
+        msgEl.textContent = "";
+        msgEl.className = "msg";
+        nextLink.classList.add("hidden");
+        return;
+      }
+
+      const wrongIdx = res.map((v,i)=> v?null:i+1).filter(Boolean);
+      if (wrongIdx.length === 0){
+        msgEl.textContent = "✅ รหัสถูกต้อง — ผ่านด่าน " + STAGE + "/3";
+        msgEl.className = "msg ok";
+
+        inputs.forEach(i=> i.setAttribute("disabled","true"));
+        btnCheck.setAttribute("disabled","true");
+
+        // ด่านสุดท้ายมีหน้าชัยชนะ (เฉพาะ stage 3)
+        if (true) {
+          showVictory();
+        } else {
+          const url = (typeof window.NEXT_URL_OVERRIDE === "string") ? window.NEXT_URL_OVERRIDE : null;
+          if (url){
+            if (AUTO_REDIRECT_MS > 0) setTimeout(()=> location.href = url, AUTO_REDIRECT_MS);
+            else {
+              nextLink.href = url; nextLink.classList.remove("hidden");
+              nextLink.textContent = "ไปด่านถัดไป ➜";
+            }
+          }
+        }
+      } else {
+        msgEl.textContent = "❌ รหัสผิด — ผิดที่หลัก: " + wrongIdx.join(", ");
+        msgEl.className = "msg bad";
+        nextLink.classList.add("hidden");
+      }
+    }
+
+    function resetInputs(){
+      inputs.forEach(i=>{ i.removeAttribute("disabled"); i.value=""; i.classList.remove("ok","bad"); });
+      btnCheck.removeAttribute("disabled");
+      msgEl.textContent=""; msgEl.className="msg";
+      nextLink.classList.add("hidden");
+      inputs[0].focus();
+    }
+
+    // Events
+    inputs.forEach((inp, idx)=>{
+      inp.addEventListener("input", ()=>{
+        let v = inp.value.replace(/\\D/g,""); if (v.length > 1) v = v.slice(-1); inp.value = v;
+        if (v && idx < inputs.length - 1){ inputs[idx+1].focus(); inputs[idx+1].select?.(); }
+        applyStyles();
+      });
+      inp.addEventListener("keydown", (e)=>{
+        if (e.key === "Backspace" && !inp.value && idx > 0){
+          inputs[idx-1].focus(); inputs[idx-1].value = ""; inputs[idx-1].dispatchEvent(new Event("input")); e.preventDefault();
+        }
+        if (e.key === "ArrowLeft" && idx > 0){ inputs[idx-1].focus(); e.preventDefault(); }
+        if (e.key === "ArrowRight" && idx < inputs.length - 1){ inputs[idx+1].focus(); e.preventDefault(); }
+      });
+      inp.addEventListener("paste", (e)=>{
+        const text = (e.clipboardData || window.clipboardData).getData("text");
+        const m = text.match(/\\d/g); if (!m) return; e.preventDefault();
+        const nums = m.slice(0,5); for (let i=0;i<nums.length;i++) inputs[i].value = nums[i];
+        (nums.length < 5 ? inputs[nums.length] : inputs[4]).focus();
+        applyStyles();
+      });
+    });
+    btnCheck.addEventListener("click", applyStyles);
+    btnReset.addEventListener("click", resetInputs);
+
+    // ===== Victory (เฉพาะ stage 3) =====
+    
+    let ctx=null, confettiCanvas=null, confettiPieces=[], confettiTimer=null, rafId=null, started=false;
+    function showVictory(){
+      // overlay on
+      const overlay = document.getElementById("overlay");
+      overlay.classList.add("on"); overlay.setAttribute("aria-hidden","false");
+      // confetti
+      if (!started){
+        confettiCanvas = document.getElementById("confetti");
+        ctx = confettiCanvas.getContext("2d");
+        function resize(){ confettiCanvas.width = innerWidth; confettiCanvas.height = innerHeight; }
+        addEventListener("resize", resize); resize();
+        startConfetti(4500); started = true;
+      } else { startConfetti(4500); }
+    }
+    function startConfetti(durationMs=4000){
+      confettiPieces = Array.from({length: 180}, ()=> ({
+        x: Math.random()*confettiCanvas.width,
+        y: Math.random()*-confettiCanvas.height,
+        s: 5+Math.random()*8,
+        v: 2+Math.random()*3,
+        a: Math.random()*Math.PI*2,
+        w: 0.02+Math.random()*0.06
+      }));
+      const t0 = performance.now();
+      function draw(now){
+        ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+        confettiPieces.forEach(p=>{
+          p.y += p.v; p.x += Math.sin(p.a)*0.8; p.a += p.w;
+          if (p.y > confettiCanvas.height+20){ p.y = -10; p.x = Math.random()*confettiCanvas.width; }
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a);
+          ctx.fillStyle = ["#ef4444","#f59e0b","#10b981","#3b82f6","#a855f7"][Math.floor(Math.random()*5)];
+          ctx.fillRect(-p.s/2, -p.s/2, p.s, p.s*1.2);
+          ctx.restore();
+        });
+        if (now - t0 < durationMs) rafId = requestAnimationFrame(draw);
+      }
+      rafId = requestAnimationFrame(draw);
+      confettiTimer = setTimeout(stopConfetti, durationMs+200);
+    }
+    function stopConfetti(){
+      if (rafId) cancelAnimationFrame(rafId);
+      if (confettiTimer) clearTimeout(confettiTimer);
+      if (ctx) ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+    }
+    
+  </script>
+</body>
+</html>
